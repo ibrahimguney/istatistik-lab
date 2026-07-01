@@ -61,6 +61,8 @@ Frontend: HTML5, TailwindCSS, Chart.js.
 Backend: Statik barındırma (GitHub Pages / Vercel için optimize).
 
 AI: Vektör veritabanı destekli RAG (Retrieval-Augmented Generation) mimarisi.
+<img width="803" height="385" alt="image" src="https://github.com/user-attachments/assets/1f1bcb62-582a-4977-b3ae-476b94d0d375" />
+
 
 📂 Dosya Yapısı
 
