@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İstatistik V2: Dijital Laboratuvarlar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Navbar -->
+    <nav class="bg-indigo-900 text-white p-4 shadow-lg">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="font-bold text-xl">📊 İstatistik V2 Dijital</h1>
+            <div class="space-x-4">
+                <a href="#overview" class="hover:text-indigo-200">Özet</a>
+                <a href="#modules" class="hover:text-indigo-200">Laboratuvarlar</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto p-6">
+        <section id="overview" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">Hoş Geldiniz</h2>
+            <p class="text-slate-600">İstatistik V2 kitabının tüm etkileşimli simülatörlerine buradan erişebilirsiniz. QR kodlar bu sayfadaki spesifik bölüm linklerine yönlendirecektir.</p>
+        </section>
+
+        <section id="modules">
+            <h2 class="text-2xl font-bold mb-6">Bölüm Laboratuvarları</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="module-grid">
+                <!-- Bölüm Kartları JS ile eklenecek -->
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const bölümler = [
+            { id: 1, title: "Merkezi Limit Teoremi", link: "lab/bolum1_mcl_lab.html" },
+            { id: 2, title: "Sapma ve Varyans", link: "lab/bolum2_bias_var.html" },
+            { id: 3, title: "Güven Aralıkları", link: "lab/bolum3_guven.html" },
+            { id: 4, title: "Hipotez Testleri", link: "lab/bolum4_hipotez.html" },
+            { id: 5, title: "Regresyon Analizi", link: "lab/bolum5_regresyon.html" },
+            { id: 6, title: "ANOVA", link: "lab/bolum6_anova.html" },
+            { id: 7, title: "Ki-Kare Testleri", link: "lab/bolum7_kikare.html" },
+            { id: 8, title: "Parametrik Olmayan Testler", link: "lab/bolum8_nonparam.html" },
+            { id: 9, title: "Bayesçi Çıkarım", link: "lab/bolum9_bayes.html" }
+        ];
+
+        const grid = document.getElementById('module-grid');
+        bölümler.forEach(b => {
+            grid.innerHTML += `
+                <a href="${b.link}" class="bg-white p-6 rounded-xl shadow border border-slate-200 hover:border-indigo-500 transition-all hover:scale-105">
+                    <h3 class="font-bold text-lg mb-2">Bölüm ${b.id}</h3>
+                    <p class="text-slate-500">${b.title}</p>
+                    <span class="text-indigo-600 font-semibold mt-4 block text-sm">Laboratuvarı Aç →</span>
+                </a>
+            `;
+        });
+    </script>
+</body>
+</html>
