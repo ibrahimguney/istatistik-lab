@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İstatistik Dijital Laboratuvar - Bölüm 6</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .chat-container { height: calc(100vh - 250px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+
+    <!-- Sol Taraf: Simülasyon Ekranı -->
+    <div class="w-2/3 flex flex-col h-full border-r border-gray-200 bg-white">
+        <!-- Başlık -->
+        <div class="bg-emerald-800 text-white p-4 shadow-md flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold"><i class="fas fa-layer-group mr-2"></i>Dijital Laboratuvar</h1>
+                <p class="text-sm text-emerald-200">Bölüm 6.14 Öncesi Pratik: ANOVA ve F-Dağılımı Simülatörü</p>
+            </div>
+            <div class="bg-emerald-700 px-3 py-1 rounded text-sm border border-emerald-500">
+                <i class="fas fa-book-open mr-1"></i> Sayfa 77
+            </div>
+        </div>
+
+        <!-- Kontroller -->
+        <div class="p-4 bg-gray-100 border-b border-gray-200 shadow-inner grid grid-cols-2 gap-4">
+            
+            <div class="flex flex-col gap-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-1"></span>Grup A Ortalaması: <span id="meanAVal" class="text-emerald-600 font-bold">40</span>
+                    </label>
+                    <input type="range" id="meanA" min="20" max="80" value="40" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        <span class="inline-block w-3 h-3 bg-orange-500 rounded-full mr-1"></span>Grup B Ortalaması: <span id="meanBVal" class="text-emerald-600 font-bold">50</span>
+                    </label>
+                    <input type="range" id="meanB" min="20" max="80" value="50" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span>Grup C Ortalaması: <span id="meanCVal" class="text-emerald-600 font-bold">60</span>
+                    </label>
+                    <input type="range" id="meanC" min="20" max="80" value="60" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer">
+                </div>
+            </div>
+
+            <div class="flex flex-col justify-between">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-800 mb-1">
+                        Grup İçi Yayılım (Varyans - Gürültü): <span id="varVal" class="text-emerald-600 font-bold">5</span>
+                    </label>
+                    <input type="range" id="variance" min="1" max="25" value="5" step="0.5" class="w-full h-3 bg-gray-300 rounded-lg appearance-none cursor-pointer">
+                    <p class="text-[10px] text-gray-500 mt-1">Bu ayar sağa çekildikçe grupların kendi içindeki dağılımı (SSW) artar.</p>
+                </div>
+
+                <button onclick="generateData()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded shadow transition-colors flex items-center justify-center h-10 mt-2 w-full">
+                    <i class="fas fa-dice mr-2"></i> Yeni Veri Üret
+                </button>
+            </div>
+            
+        </div>
+
+        <!-- İstatistik Özeti -->
+        <div class="grid grid-cols-4 gap-3 p-4 bg-white border-b border-gray-100">
+            <div class="bg-slate-50 border border-slate-200 rounded p-2 text-center shadow-sm">
+                <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">Grup İçi Varyans (MSW)</div>
+                <div class="text-lg font-black text-slate-700" id="valMSW">0.0</div>
+                <div class="text-[9px] text-slate-400 mt-1">(Gürültü)</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded p-2 text-center shadow-sm">
+                <div class="text-[10px] text-slate-500 font-bold uppercase mb-1">Gr. Arası Varyans (MSB)</div>
+                <div class="text-lg font-black text-slate-700" id="valMSB">0.0</div>
+                <div class="text-[9px] text-slate-400 mt-1">(Sinyal)</div>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-300 rounded p-2 text-center shadow-sm relative overflow-hidden" id="boxF">
+                <div class="text-[10px] text-emerald-800 font-bold uppercase mb-1">F İstatistiği (MSB/MSW)</div>
+                <div class="text-2xl font-black text-emerald-600" id="valF">0.0</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded p-2 text-center flex flex-col justify-center items-center shadow-sm transition-colors" id="boxResult">
+                <div class="text-[10px] text-gray-500 font-bold uppercase mb-1">Karar (α=0.05)</div>
+                <div class="text-sm font-bold text-gray-700" id="valDecision">Bekleniyor...</div>
+            </div>
+        </div>
+
+        <!-- Grafik Alanı -->
+        <div class="flex-1 p-4 relative w-full h-full">
+            <div class="absolute top-2 left-6 text-xs text-gray-500 z-10 bg-white/80 p-1 rounded">
+                Y ekseni rastgele dağıtılmıştır (Jitter), X ekseni veri değerleridir.
+            </div>
+            <canvas id="anovaChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Sağ Taraf: RAG Kitap Asistanı -->
+    <div class="w-1/3 flex flex-col h-full bg-slate-50 border-l border-gray-200">
+        <!-- AI Başlık -->
+        <div class="bg-slate-800 text-white p-4 shadow-md flex items-center">
+            <div class="bg-emerald-500 w-10 h-10 rounded-full flex items-center justify-center mr-3 border-2 border-slate-400">
+                <i class="fas fa-robot text-xl"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold">Kitap Asistanı</h2>
+                <p class="text-xs text-slate-300">İstatistik V2 ile eğitildi (Bölüm 6)</p>
+            </div>
+        </div>
+
+        <!-- Chat Geçmişi -->
+        <div class="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4" id="chatHistory">
+            
+            <div class="flex justify-start">
+                <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-[85%] shadow-sm text-sm text-gray-800">
+                    <p class="font-semibold text-emerald-700 mb-1"><i class="fas fa-book mr-1"></i> Bölüm 6 Asistanı</p>
+                    Merhaba! <strong>Bölüm 6: Varyans Analizi (ANOVA)</strong> laboratuvarına hoş geldiniz.<br><br>Şu an <strong>Sayfa 74, Başlık 6.8 (F Dağılımının Test Mantığı)</strong> konusundayız. Ortalamaları farklı olan grupların neden her zaman "istatistiksel olarak anlamlı farklı" olmadığını sol taraftaki sürgüleri kullanarak test edebilirsiniz.
+                </div>
+            </div>
+            
+            <!-- Örnek Kullanıcı Sorusu Butonları -->
+            <div class="flex flex-col gap-2 mt-2" id="suggestionButtons">
+                <p class="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wide">Örnek Sorular:</p>
+                <button onclick="askAI('F istatistiği neden MSB ve MSW\'nin oranıdır?')" class="text-left text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 p-2 rounded transition-colors">
+                    "F istatistiği neden MSB ve MSW'nin oranıdır?"
+                </button>
+                <button onclick="askAI('Grup ortalamaları aynı kaldığı halde Grup İçi Yayılımı artırırsam ne olur?')" class="text-left text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 p-2 rounded transition-colors">
+                    "Grup ortalamaları aynı kaldığı halde Grup İçi Yayılımı artırırsam ne olur?"
+                </button>
+                <button onclick="askAI('H0 hipotezini reddetmek için F değerinin kaç olması lazım?')" class="text-left text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 p-2 rounded transition-colors">
+                    "H0 hipotezini reddetmek için F değerinin kaç olması lazım?"
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Mesaj Yazma Alanı -->
+        <div class="p-3 bg-white border-t border-gray-200 flex gap-2">
+            <input type="text" id="userInput" placeholder="Kitap asistanına sor..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500" onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()" class="bg-slate-700 hover:bg-slate-800 text-white rounded px-4 py-2 transition-colors">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- ANOVA SİMÜLATÖR MANTIĞI ---
+        let chartInstance = null;
+        const N_PER_GROUP = 20; // Her grupta 20 gözlem
+        const TOTAL_N = N_PER_GROUP * 3;
+        const K = 3; // Grup sayısı
+        const CRITICAL_F = 3.15; // df1=2, df2=57, alpha=0.05 için yaklaşık kritik F değeri
+
+        // Normal dağılımlı sayı üreteci (Box-Muller)
+        function randomNormal(mean, stdDev) {
+            let u = 0, v = 0;
+            while(u === 0) u = Math.random();
+            while(v === 0) v = Math.random();
+            let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return num * stdDev + mean;
+        }
+
+        // Veri tutucular
+        let dataA = [];
+        let dataB = [];
+        let dataC = [];
+        let jitterA = [];
+        let jitterB = [];
+        let jitterC = [];
+
+        function generateData() {
+            // Varyans slider'ı aslında Standart Sapma (stdDev) gibi kullanıyoruz (görsellik için kök alıyoruz)
+            const varianceInput = parseFloat(document.getElementById('variance').value);
+            const stdDev = Math.sqrt(varianceInput * 5); // Görsel dağılım hissi için ölçekleme
+            
+            const meanA = parseFloat(document.getElementById('meanA').value);
+            const meanB = parseFloat(document.getElementById('meanB').value);
+            const meanC = parseFloat(document.getElementById('meanC').value);
+
+            dataA = []; dataB = []; dataC = [];
+            jitterA = []; jitterB = []; jitterC = [];
+
+            for(let i=0; i<N_PER_GROUP; i++) {
+                dataA.push(randomNormal(meanA, stdDev));
+                dataB.push(randomNormal(meanB, stdDev));
+                dataC.push(randomNormal(meanC, stdDev));
+                
+                // Noktaların üst üste binmemesi için Y ekseninde rastgele dağılım (Jitter)
+                jitterA.push(1 + (Math.random() * 0.6 - 0.3)); // Y=1 hizası etrafında
+                jitterB.push(2 + (Math.random() * 0.6 - 0.3)); // Y=2 hizası etrafında
+                jitterC.push(3 + (Math.random() * 0.6 - 0.3)); // Y=3 hizası etrafında
+            }
+
+            calculateANOVA();
+        }
+
+        function calculateANOVA() {
+            // Ortalamaları hesapla
+            const sumA = dataA.reduce((a,b)=>a+b, 0);
+            const sumB = dataB.reduce((a,b)=>a+b, 0);
+            const sumC = dataC.reduce((a,b)=>a+b, 0);
+            
+            const avgA = sumA / N_PER_GROUP;
+            const avgB = sumB / N_PER_GROUP;
+            const avgC = sumC / N_PER_GROUP;
+            
+            const grandMean = (sumA + sumB + sumC) / TOTAL_N;
+
+            // Grup İçi Kareler Toplamı (SSW)
+            let ssw = 0;
+            dataA.forEach(val => ssw += Math.pow(val - avgA, 2));
+            dataB.forEach(val => ssw += Math.pow(val - avgB, 2));
+            dataC.forEach(val => ssw += Math.pow(val - avgC, 2));
+            
+            // Gruplar Arası Kareler Toplamı (SSB)
+            let ssb = 0;
+            ssb += N_PER_GROUP * Math.pow(avgA - grandMean, 2);
+            ssb += N_PER_GROUP * Math.pow(avgB - grandMean, 2);
+            ssb += N_PER_GROUP * Math.pow(avgC - grandMean, 2);
+
+            // Serbestlik Dereceleri (df)
+            const dfB = K - 1; // 3 - 1 = 2
+            const dfW = TOTAL_N - K; // 60 - 3 = 57
+
+            // Ortalamalar (Mean Squares)
+            const msb = ssb / dfB;
+            const msw = ssw / dfW;
+
+            // F-İstatistiği
+            const fValue = msb / msw;
+
+            updateUI(msw, msb, fValue, avgA, avgB, avgC);
+            drawChart();
+        }
+
+        function updateUI(msw, msb, fValue, avgA, avgB, avgC) {
+            document.getElementById('meanAVal').innerText = avgA.toFixed(1);
+            document.getElementById('meanBVal').innerText = avgB.toFixed(1);
+            document.getElementById('meanCVal').innerText = avgC.toFixed(1);
+            document.getElementById('varVal').innerText = document.getElementById('variance').value;
+
+            document.getElementById('valMSW').innerText = msw.toFixed(2);
+            document.getElementById('valMSB').innerText = msb.toFixed(2);
+            document.getElementById('valF').innerText = fValue.toFixed(2);
+
+            const resultBox = document.getElementById('boxResult');
+            const resultText = document.getElementById('valDecision');
+            const fBox = document.getElementById('boxF');
+
+            // F değeri Kritik Değerden büyükse H0 reddedilir (Gruplar farklıdır)
+            if (fValue > CRITICAL_F) {
+                resultBox.className = "bg-green-100 border border-green-400 rounded p-2 text-center flex flex-col justify-center items-center shadow-sm transition-colors";
+                resultText.className = "text-sm font-bold text-green-800";
+                resultText.innerText = "H0 Reddedilir! (Farklı)";
+                
+                fBox.className = "bg-emerald-100 border border-emerald-400 rounded p-2 text-center shadow-sm relative overflow-hidden transition-colors";
+            } else {
+                resultBox.className = "bg-red-50 border border-red-300 rounded p-2 text-center flex flex-col justify-center items-center shadow-sm transition-colors";
+                resultText.className = "text-sm font-bold text-red-700";
+                resultText.innerText = "H0 Reddedilemez (Aynı)";
+                
+                fBox.className = "bg-gray-100 border border-gray-300 rounded p-2 text-center shadow-sm relative overflow-hidden transition-colors";
+            }
+        }
+
+        function drawChart() {
+            const ctx = document.getElementById('anovaChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            // Verileri Chart.js formatına çevir
+            const datasetA = dataA.map((val, i) => ({x: val, y: jitterA[i]}));
+            const datasetB = dataB.map((val, i) => ({x: val, y: jitterB[i]}));
+            const datasetC = dataC.map((val, i) => ({x: val, y: jitterC[i]}));
+
+            chartInstance = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Grup A',
+                            data: datasetA,
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)', // Blue
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            pointRadius: 5
+                        },
+                        {
+                            label: 'Grup B',
+                            data: datasetB,
+                            backgroundColor: 'rgba(249, 115, 22, 0.6)', // Orange
+                            borderColor: 'rgba(249, 115, 22, 1)',
+                            pointRadius: 5
+                        },
+                        {
+                            label: 'Grup C',
+                            data: datasetC,
+                            backgroundColor: 'rgba(34, 197, 94, 0.6)', // Green
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            pointRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 400 },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    },
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 4,
+                            ticks: {
+                                callback: function(value) {
+                                    if(value === 1) return 'A Grubu';
+                                    if(value === 2) return 'B Grubu';
+                                    if(value === 3) return 'C Grubu';
+                                    return '';
+                                }
+                            },
+                            grid: { display: false }
+                        },
+                        x: {
+                            min: 0,
+                            max: 100,
+                            title: { display: true, text: 'Ölçülen Değer' }
+                        }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('meanA').addEventListener('input', generateData);
+        document.getElementById('meanB').addEventListener('input', generateData);
+        document.getElementById('meanC').addEventListener('input', generateData);
+        document.getElementById('variance').addEventListener('input', generateData);
+
+        // --- RAG AI SİMÜLASYONU MANTIĞI ---
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function askAI(question) {
+            document.getElementById('userInput').value = question;
+            document.getElementById('suggestionButtons').style.display = 'none';
+            sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            input.value = '';
+
+            setTimeout(() => {
+                let response = generateRAGResponse(message);
+                appendMessage(response, 'ai');
+            }, 800);
+        }
+
+        function appendMessage(text, sender) {
+            const chatHistory = document.getElementById('chatHistory');
+            const msgDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                msgDiv.className = 'flex justify-end';
+                msgDiv.innerHTML = `<div class="bg-emerald-600 text-white rounded-lg p-3 max-w-[85%] shadow-sm text-sm">${text}</div>`;
+            } else {
+                msgDiv.className = 'flex justify-start';
+                msgDiv.innerHTML = `
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-[85%] shadow-sm text-sm text-gray-800">
+                        <p class="font-semibold text-slate-700 mb-1"><i class="fas fa-book mr-1"></i> Asistan</p>
+                        ${text}
+                    </div>
+                `;
+            }
+            
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function generateRAGResponse(query) {
+            query = query.toLowerCase();
+            
+            if (query.includes('neden') && query.includes('oran') || query.includes('msb') || query.includes('msw')) {
+                return `<strong>Kaynak: Bölüm 6.7 (ANOVA'yı Regresyon Diliyle Okumak)</strong><br><br>ANOVA aslında bir "Sinyal / Gürültü" (Signal-to-Noise) ölçümüdür. <br><br><strong>MSB (Gruplar Arası Varyans)</strong> sinyali temsil eder; yani grupların birbirinden ne kadar farklı olduğunu ölçer. <br><strong>MSW (Grup İçi Varyans)</strong> ise gürültüyü temsil eder; grup içindeki doğal, rastgele dalgalanmadır.<br><br>F-istatistiği (Sinyal / Gürültü) yeterince büyükse (sinyal gürültüyü bastırıyorsa) gruplar gerçekten farklı demektir.`;
+            } 
+            else if (query.includes('aynı') || query.includes('yayılım') || query.includes('artır') || query.includes('ne olur')) {
+                return `<strong>Kaynak: Bölüm 6.8 (F Dağılımının Test Mantığı)</strong><br><br>Simülatörde harika bir deneme! Grup ortalamalarını sabit tutup "Grup İçi Yayılımı" sağa doğru (örneğin 20'ye) çekerseniz, grafikteki mavi, turuncu ve yeşil noktaların birbirine girdiğini göreceksiniz. <br><br>Formülde MSW (payda) büyüdüğü için F-İstatistiği (oran) aniden küçülecek ve "H0 Reddedilemez" kararı verecektir. Yani gürültü artarsa, gerçek bir farkı tespit etmek imkansızlaşır.`;
+            }
+            else if (query.includes('h0') || query.includes('reddetmek') || query.includes('kaç olması') || query.includes('kritik')) {
+                return `<strong>Kaynak: Bölüm 6.10 (ANOVA Tablosu Kurma)</strong><br><br>F-değerinin kaç olması gerektiği (Kritik Değer), serbestlik derecesine ($df_1$ ve $df_2$) ve belirlediğiniz anlamlılık düzeyine ($\\alpha$) bağlı olarak F-Tablosundan okunur.<br><br>Bu simülasyonda 3 grup ($k=3$) ve toplam 60 gözlem ($N=60$) var. $\\alpha = 0.05$ için kritik F değerimiz yaklaşık <strong>3.15</strong>'tir. F değeriniz 3.15'i aştığı anda H0'ı (Grupların ortalamaları eşittir iddiasını) reddedersiniz.`;
+            }
+            else {
+                return `Sorunuzu anladım. Şu an <strong>Bölüm 6: Varyans Analizi (ANOVA)</strong> (Sayfa 67-79) kapsamındayız. Lütfen Gruplar Arası Varyans (SSB), Grup İçi Varyans (SSW), F Dağılımı ve Serbestlik Derecesi hakkında sorular sorun.`;
+            }
+        }
+
+        // Başlangıçta veriyi üret ve grafiği çiz
+        window.onload = generateData;
+
+    </script>
+</body>
+</html>

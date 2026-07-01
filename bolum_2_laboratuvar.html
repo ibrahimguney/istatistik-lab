@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İstatistik Dijital Laboratuvar - Bölüm 2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .chat-container { height: calc(100vh - 250px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
+        /* Hedef tahtası özel stilleri */
+        .target-board {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-height: 400px;
+            max-width: 400px;
+            margin: 0 auto;
+            border-radius: 50%;
+            background: 
+                radial-gradient(circle, #fca5a5 0%, #fca5a5 10%, transparent 10%), /* Kırmızı Merkez */
+                radial-gradient(circle, transparent 19%, #94a3b8 20%, transparent 21%), /* Çizgi */
+                radial-gradient(circle, transparent 39%, #94a3b8 40%, transparent 41%), /* Çizgi */
+                radial-gradient(circle, transparent 59%, #94a3b8 60%, transparent 61%), /* Çizgi */
+                radial-gradient(circle, transparent 79%, #94a3b8 80%, transparent 81%), /* Çizgi */
+                #f8fafc; /* Arka plan */
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05), 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .shot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #4f46e5; /* İndigo-600 */
+            border-radius: 50%;
+            transform: translate(-50%, -50%); /* Tam merkeze hizalama için */
+            opacity: 0.8;
+            box-shadow: 0 0 2px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        .true-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 4px;
+            background-color: black;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+
+    <!-- Sol Taraf: Simülasyon Ekranı -->
+    <div class="w-2/3 flex flex-col h-full border-r border-gray-200 bg-white">
+        <!-- Başlık -->
+        <div class="bg-teal-800 text-white p-4 shadow-md flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold"><i class="fas fa-bullseye mr-2"></i>Dijital Laboratuvar</h1>
+                <p class="text-sm text-teal-200">Bölüm 2.14 Öncesi Pratik: Sapma (Bias) ve Varyans Dengesi</p>
+            </div>
+            <div class="bg-teal-700 px-3 py-1 rounded text-sm border border-teal-500">
+                <i class="fas fa-book-open mr-1"></i> Sayfa 23
+            </div>
+        </div>
+
+        <!-- Kontroller -->
+        <div class="p-4 bg-gray-100 border-b border-gray-200 flex flex-wrap gap-6 items-center shadow-inner">
+            
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                    Sapma Miktarı (Bias): <span id="biasVal" class="text-teal-600 font-bold">0</span>
+                </label>
+                <input type="range" id="biasSlider" min="0" max="100" value="0" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer">
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Sapmasız (Merkezde)</span><span>Yüksek Sapma</span>
+                </div>
+            </div>
+
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                    Varyans (Dağılım): <span id="varianceVal" class="text-teal-600 font-bold">Düşük</span>
+                </label>
+                <input type="range" id="varianceSlider" min="1" max="100" value="10" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer">
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Etkin (Düşük Var.)</span><span>Dağınık (Yüksek Var.)</span>
+                </div>
+            </div>
+
+            <button onclick="drawShots()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-2 px-6 rounded shadow transition-colors flex items-center h-[38px] mb-[18px]">
+                <i class="fas fa-sync-alt mr-2"></i> Yeniden Ateş Et (50 Atış)
+            </button>
+        </div>
+
+        <!-- Ana Simülasyon Alanı -->
+        <div class="flex-1 p-6 relative w-full h-full flex flex-col items-center justify-center bg-white">
+            
+            <!-- Bilgi Kartları -->
+            <div class="w-full max-w-lg mb-6 grid grid-cols-2 gap-4">
+                <div id="biasStatus" class="border border-green-300 bg-green-50 rounded p-3 text-center transition-colors">
+                    <div class="text-xs font-bold uppercase mb-1 text-gray-500">Tahmin Edici Durumu</div>
+                    <div class="text-lg font-black text-green-700">Sapmasız (Unbiased)</div>
+                </div>
+                <div id="varStatus" class="border border-green-300 bg-green-50 rounded p-3 text-center transition-colors">
+                    <div class="text-xs font-bold uppercase mb-1 text-gray-500">Etkinlik Durumu</div>
+                    <div class="text-lg font-black text-green-700">Yüksek Etkinlik (Dar)</div>
+                </div>
+            </div>
+
+            <!-- Hedef Tahtası -->
+            <div class="target-board" id="targetBoard">
+                <div class="true-center"></div>
+                <!-- Atışlar buraya JavaScript ile eklenecek -->
+            </div>
+
+            <div class="mt-4 text-sm text-gray-500 text-center max-w-md">
+                Kırmızı merkez <strong>gerçek parametreyi (θ)</strong> temsil eder. Mavi noktalar ise farklı örneklemlerden elde ettiğimiz <strong>tahmin değerleridir (θ̂)</strong>.
+            </div>
+        </div>
+    </div>
+
+    <!-- Sağ Taraf: RAG Kitap Asistanı -->
+    <div class="w-1/3 flex flex-col h-full bg-slate-50 border-l border-gray-200">
+        <!-- AI Başlık -->
+        <div class="bg-slate-800 text-white p-4 shadow-md flex items-center">
+            <div class="bg-teal-500 w-10 h-10 rounded-full flex items-center justify-center mr-3 border-2 border-slate-400">
+                <i class="fas fa-robot text-xl"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold">Kitap Asistanı</h2>
+                <p class="text-xs text-slate-300">İstatistik V2 ile eğitildi (Bölüm 2)</p>
+            </div>
+        </div>
+
+        <!-- Chat Geçmişi -->
+        <div class="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4" id="chatHistory">
+            
+            <div class="flex justify-start">
+                <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-[85%] shadow-sm text-sm text-gray-800">
+                    <p class="font-semibold text-teal-700 mb-1"><i class="fas fa-book mr-1"></i> Bölüm 2 Asistanı</p>
+                    Merhaba! <strong>Bölüm 2: Nokta Tahmin Teorisi'ndeyiz.</strong> Soldaki hedef tahtasında iyi bir tahmin edicinin özelliklerini (sapma ve varyans) test ediyoruz.<br><br>Şu an <strong>Sayfa 23, Bölüm Sonu Öncesi</strong> aşamasındayız. Rao-Blackwell teoremi veya tahmin edici seçimiyle ilgili sorularınızı sorabilirsiniz.
+                </div>
+            </div>
+            
+            <!-- Örnek Kullanıcı Sorusu Butonları -->
+            <div class="flex flex-col gap-2 mt-2" id="suggestionButtons">
+                <p class="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wide">Örnek Sorular:</p>
+                <button onclick="askAI('Sapmasız olmak tek başına yeterli mi? Neden varyansa da bakıyoruz?')" class="text-left text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 p-2 rounded transition-colors">
+                    "Sapmasız olmak tek başına yeterli mi? Neden varyansa da bakıyoruz?"
+                </button>
+                <button onclick="askAI('Biraz sapma olsa ama varyans çok düşük olsa kabul edilebilir mi?')" class="text-left text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 p-2 rounded transition-colors">
+                    "Biraz sapma olsa ama varyans çok düşük olsa kabul edilebilir mi?"
+                </button>
+                <button onclick="askAI('Rao-Blackwell Teoremi (Bölüm 2.8) hedef tahtasında ne yapar?')" class="text-left text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 p-2 rounded transition-colors">
+                    "Rao-Blackwell Teoremi (Bölüm 2.8) hedef tahtasında ne yapar?"
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Mesaj Yazma Alanı -->
+        <div class="p-3 bg-white border-t border-gray-200 flex gap-2">
+            <input type="text" id="userInput" placeholder="Kitap asistanına sor..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500" onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()" class="bg-slate-700 hover:bg-slate-800 text-white rounded px-4 py-2 transition-colors">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- SİMÜLATÖR MANTIĞI ---
+        const NUM_SHOTS = 50;
+        
+        // Normal Dağılımlı Rastgele Sayı Üretici (Box-Muller Transform)
+        function randomNormal(mean, stdDev) {
+            let u = 0, v = 0;
+            while(u === 0) u = Math.random();
+            while(v === 0) v = Math.random();
+            let num = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            return num * stdDev + mean;
+        }
+
+        function drawShots() {
+            const board = document.getElementById('targetBoard');
+            const biasSlider = document.getElementById('biasSlider');
+            const varianceSlider = document.getElementById('varianceSlider');
+            
+            const bias = parseInt(biasSlider.value);
+            const variance = parseInt(varianceSlider.value);
+
+            // UI Metinlerini Güncelleme
+            document.getElementById('biasVal').innerText = bias === 0 ? "0" : bias;
+            document.getElementById('varianceVal').innerText = variance < 30 ? "Düşük" : (variance < 70 ? "Orta" : "Yüksek");
+
+            // Durum Kartlarını Güncelleme
+            const biasStatus = document.getElementById('biasStatus');
+            if(bias === 0) {
+                biasStatus.className = "border border-green-300 bg-green-50 rounded p-3 text-center transition-colors";
+                biasStatus.innerHTML = `<div class="text-xs font-bold uppercase mb-1 text-gray-500">Tahmin Edici Durumu</div><div class="text-lg font-black text-green-700">Sapmasız (Unbiased)</div>`;
+            } else {
+                biasStatus.className = "border border-red-300 bg-red-50 rounded p-3 text-center transition-colors";
+                biasStatus.innerHTML = `<div class="text-xs font-bold uppercase mb-1 text-gray-500">Tahmin Edici Durumu</div><div class="text-lg font-black text-red-700">Sapmalı (Biased)</div>`;
+            }
+
+            const varStatus = document.getElementById('varStatus');
+            if(variance < 40) {
+                varStatus.className = "border border-green-300 bg-green-50 rounded p-3 text-center transition-colors";
+                varStatus.innerHTML = `<div class="text-xs font-bold uppercase mb-1 text-gray-500">Etkinlik Durumu</div><div class="text-lg font-black text-green-700">Etkin (Düşük Varyans)</div>`;
+            } else {
+                varStatus.className = "border border-orange-300 bg-orange-50 rounded p-3 text-center transition-colors";
+                varStatus.innerHTML = `<div class="text-xs font-bold uppercase mb-1 text-gray-500">Etkinlik Durumu</div><div class="text-lg font-black text-orange-700">Dağınık (Yüksek Var.)</div>`;
+            }
+
+            // Eski atışları temizle (true-center hariç)
+            const oldShots = board.querySelectorAll('.shot');
+            oldShots.forEach(shot => shot.remove());
+
+            // Bias Yönünü rastgele belirle (Hedefin hangi tarafına sapacak)
+            const biasAngle = Math.random() * 2 * Math.PI;
+            const biasX = Math.cos(biasAngle) * bias;
+            const biasY = Math.sin(biasAngle) * bias;
+
+            // Yeni atışları ekle
+            for (let i = 0; i < NUM_SHOTS; i++) {
+                // Merkez (50,50) + Sapma(Bias) + Rastgele Varyans (Standart Sapma)
+                let x = randomNormal(50 + biasX, variance / 5); 
+                let y = randomNormal(50 + biasY, variance / 5);
+
+                const shot = document.createElement('div');
+                shot.className = 'shot';
+                shot.style.left = `${x}%`;
+                shot.style.top = `${y}%`;
+                
+                // Animasyonlu geliş için başlangıçta gizle
+                shot.style.opacity = '0';
+                shot.style.transform = 'translate(-50%, -50%) scale(0)';
+                
+                board.appendChild(shot);
+
+                // Gecikmeli gösterim (ateş efekti)
+                setTimeout(() => {
+                    shot.style.opacity = '0.8';
+                    shot.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, i * 15); // Her atış arası 15ms
+            }
+        }
+
+        // Event Listeners for Sliders (Anlık güncelleme için)
+        document.getElementById('biasSlider').addEventListener('input', drawShots);
+        document.getElementById('varianceSlider').addEventListener('input', drawShots);
+
+
+        // --- RAG AI SİMÜLASYONU ---
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function askAI(question) {
+            document.getElementById('userInput').value = question;
+            document.getElementById('suggestionButtons').style.display = 'none';
+            sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            input.value = '';
+
+            setTimeout(() => {
+                let response = generateRAGResponse(message);
+                appendMessage(response, 'ai');
+            }, 800);
+        }
+
+        function appendMessage(text, sender) {
+            const chatHistory = document.getElementById('chatHistory');
+            const msgDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                msgDiv.className = 'flex justify-end';
+                msgDiv.innerHTML = `<div class="bg-teal-600 text-white rounded-lg p-3 max-w-[85%] shadow-sm text-sm">${text}</div>`;
+            } else {
+                msgDiv.className = 'flex justify-start';
+                msgDiv.innerHTML = `
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-[85%] shadow-sm text-sm text-gray-800">
+                        <p class="font-semibold text-slate-700 mb-1"><i class="fas fa-book mr-1"></i> Asistan</p>
+                        ${text}
+                    </div>
+                `;
+            }
+            
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function generateRAGResponse(query) {
+            query = query.toLowerCase();
+            
+            if (query.includes('tek başına') || query.includes('neden varyans') || query.includes('yeterli')) {
+                return `<strong>Kaynak: Bölüm 2.2 (Formal Tanım)</strong><br><br>Sapmasız olmak, tahmin edicinin <em>"ortalama olarak"</em> doğru hedefe (kırmızı nokta) yöneldiğini gösterir. Ancak soldaki laboratuvarda <strong>Sapmayı 0 yapıp Varyansı en yükseğe çekin.</strong> Atışların kırmızı etrafında ama tahtanın her yerine dağıldığını göreceksiniz. Bu "istikrarsız" bir tahmin edicidir. Kitabımızda belirtildiği gibi iyi bir tahmin edici hem sapmasız (unbiased) olmalı hem de mümkün olan en küçük varyansa (minimum variance) sahip olmalıdır (MVUE).`;
+            } 
+            else if (query.includes('biraz sapma') || query.includes('kabul edilebilir') || query.includes('hata kareler')) {
+                return `<strong>Kaynak: Bölüm 2.7 (Tahmin Ediciyi Modern Ölçütlerle Değerlendirme)</strong><br><br>Harika bir soru! Kitabımızın 2.7 bölümünde anlatılan <strong>Hata Kareler Ortalaması (MSE)</strong> kavramı tam olarak budur. MSE = Varyans + (Sapma)². Bazen varyansı çok yüksek (aşırı dağınık) sapmasız bir tahmin edici kullanmaktansa, varyansı çok düşük ama çok hafif sapmalı bir tahmin ediciyi tercih ederiz. Laboratuvarda Sapmayı hafifçe artırıp Varyansı en düşüğe çekin; atışların kırmızı merkezden biraz sapmış olsa da çok sıkı bir küme oluşturduğunu (istikrarlı olduğunu) göreceksiniz.`;
+            }
+            else if (query.includes('rao-blackwell') || query.includes('2.8')) {
+                return `<strong>Kaynak: Bölüm 2.8 (Rao-Blackwell İyileştirmesi)</strong><br><br>Rao-Blackwell teoremi, elinizde sapmasız ama dağınık (yüksek varyanslı) bir tahmin edici varsa, onu <em>Yeterli İstatistik (Sufficient Statistic)</em> kullanarak iyileştirebileceğinizi söyler. Hedef tahtası metaforunda bu, atışların kırmızı merkeze olan odak noktasını bozmadan (sapmasızlığı koruyarak), o geniş dağılımı <strong>daraltmak (varyansı düşürmek)</strong> anlamına gelir. Laboratuvarda Varyans kaydırıcısını sola çekmenin matematiksel karşılığıdır!`;
+            }
+            else {
+                return `Sorunuzu anladım. Şu an <strong>Bölüm 2: Nokta Tahmin Teorisi</strong> (Sayfa 14-25) kapsamındayız. Lütfen iyi bir tahmin edicinin özellikleri (Sapmasızlık, Etkinlik, Tutarlılık) veya MSE (Ortalama Kare Hata) dengesi hakkında sorular sorun.`;
+            }
+        }
+
+        // Başlangıç
+        window.onload = () => {
+            // Animasyonlu giriş için ufak bir gecikme
+            setTimeout(drawShots, 300);
+        };
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İstatistik Dijital Laboratuvar - Bölüm 7</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .chat-container { height: calc(100vh - 250px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+    </style>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+
+    <!-- Sol Taraf: Simülasyon Ekranı -->
+    <div class="w-2/3 flex flex-col h-full border-r border-gray-200 bg-white">
+        <!-- Başlık -->
+        <div class="bg-purple-800 text-white p-4 shadow-md flex justify-between items-center z-10">
+            <div>
+                <h1 class="text-xl font-bold"><i class="fas fa-table mr-2"></i>Dijital Laboratuvar</h1>
+                <p class="text-sm text-purple-200">Bölüm 7.14 Öncesi Pratik: Çapraz Tablolar ve Ki-Kare (χ²) Simülatörü</p>
+            </div>
+            <div class="bg-purple-700 px-3 py-1 rounded text-sm border border-purple-500">
+                <i class="fas fa-book-open mr-1"></i> Sayfa 89
+            </div>
+        </div>
+
+        <!-- Kontroller (Çapraz Tablo Girişi) -->
+        <div class="p-6 bg-gray-100 border-b border-gray-200 shadow-inner flex flex-col xl:flex-row gap-6">
+            
+            <!-- Gözlenen Değerler (Input) -->
+            <div class="flex-1 bg-white p-4 rounded-lg shadow border border-gray-200">
+                <h3 class="text-sm font-bold text-purple-800 border-b pb-2 mb-3"><i class="fas fa-eye mr-1"></i> Gözlenen (Observed) Frekanslar</h3>
+                <div class="grid grid-cols-3 gap-2 text-center text-sm">
+                    <div class="font-semibold text-gray-500 flex items-center justify-center p-1">Gruplar \ Sonuç</div>
+                    <div class="bg-purple-100 font-semibold text-purple-800 p-2 rounded">Başarılı</div>
+                    <div class="bg-purple-100 font-semibold text-purple-800 p-2 rounded">Başarısız</div>
+                    
+                    <div class="bg-blue-50 font-semibold text-blue-800 p-2 rounded flex items-center justify-center">Tedavi A</div>
+                    <input type="number" id="o11" value="30" min="0" onchange="calculateChiSquare()" oninput="calculateChiSquare()" class="border-2 border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-purple-500 focus:outline-none">
+                    <input type="number" id="o12" value="10" min="0" onchange="calculateChiSquare()" oninput="calculateChiSquare()" class="border-2 border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-purple-500 focus:outline-none">
+                    
+                    <div class="bg-orange-50 font-semibold text-orange-800 p-2 rounded flex items-center justify-center">Tedavi B</div>
+                    <input type="number" id="o21" value="15" min="0" onchange="calculateChiSquare()" oninput="calculateChiSquare()" class="border-2 border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-purple-500 focus:outline-none">
+                    <input type="number" id="o22" value="25" min="0" onchange="calculateChiSquare()" oninput="calculateChiSquare()" class="border-2 border-gray-300 rounded p-2 text-center font-bold text-lg focus:border-purple-500 focus:outline-none">
+                </div>
+                <p class="text-[10px] text-gray-500 mt-2 italic">* Rakamları değiştirerek Ki-Kare sonucunun nasıl etkilendiğini izleyin.</p>
+            </div>
+
+            <!-- Beklenen Değerler (Hesaplanan) -->
+            <div class="flex-1 bg-slate-50 p-4 rounded-lg shadow-sm border border-slate-200">
+                <h3 class="text-sm font-bold text-slate-600 border-b pb-2 mb-3"><i class="fas fa-calculator mr-1"></i> Beklenen (Expected) Frekanslar</h3>
+                <div class="grid grid-cols-3 gap-2 text-center text-sm opacity-80">
+                    <div class="font-semibold text-gray-400 flex items-center justify-center p-1">H0 Doğruysa</div>
+                    <div class="bg-slate-200 font-semibold text-slate-600 p-2 rounded">Başarılı</div>
+                    <div class="bg-slate-200 font-semibold text-slate-600 p-2 rounded">Başarısız</div>
+                    
+                    <div class="font-semibold text-slate-500 flex items-center justify-center">Tedavi A</div>
+                    <div id="e11" class="bg-white border border-slate-300 rounded p-2 flex items-center justify-center font-bold text-slate-700">0.0</div>
+                    <div id="e12" class="bg-white border border-slate-300 rounded p-2 flex items-center justify-center font-bold text-slate-700">0.0</div>
+                    
+                    <div class="font-semibold text-slate-500 flex items-center justify-center">Tedavi B</div>
+                    <div id="e21" class="bg-white border border-slate-300 rounded p-2 flex items-center justify-center font-bold text-slate-700">0.0</div>
+                    <div id="e22" class="bg-white border border-slate-300 rounded p-2 flex items-center justify-center font-bold text-slate-700">0.0</div>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- İstatistik Özeti -->
+        <div class="grid grid-cols-3 gap-4 p-4 bg-white border-b border-gray-100">
+            <div class="bg-slate-50 border border-slate-200 rounded p-3 text-center shadow-sm">
+                <div class="text-xs text-slate-500 font-bold uppercase mb-1">Toplam Gözlem (n)</div>
+                <div class="text-2xl font-black text-slate-700" id="totalN">80</div>
+            </div>
+            <div class="bg-purple-50 border border-purple-300 rounded p-3 text-center shadow-sm relative overflow-hidden" id="boxChi">
+                <div class="text-xs text-purple-800 font-bold uppercase mb-1">Ki-Kare İstatistiği (χ²)</div>
+                <div class="text-3xl font-black text-purple-600" id="valChi">0.00</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded p-3 text-center flex flex-col justify-center items-center shadow-sm transition-colors" id="boxResult">
+                <div class="text-xs text-gray-500 font-bold uppercase mb-1">Karar (df=1, α=0.05)</div>
+                <div class="text-lg font-bold text-gray-700" id="valDecision">Bekleniyor...</div>
+                <div class="text-[10px] text-gray-400 mt-1">Kritik Değer: 3.841</div>
+            </div>
+        </div>
+
+        <!-- Grafik Alanı -->
+        <div class="flex-1 p-4 relative w-full h-full flex flex-col">
+            <h3 class="text-sm font-bold text-gray-700 text-center mb-2">Hangi Hücre Test Sonucuna Ne Kadar Katkı Yaptı? <span class="text-xs font-normal text-gray-500">((O-E)²/E)</span></h3>
+            <div class="flex-1 relative w-full h-full">
+                <canvas id="chiChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sağ Taraf: RAG Kitap Asistanı -->
+    <div class="w-1/3 flex flex-col h-full bg-slate-50 border-l border-gray-200">
+        <!-- AI Başlık -->
+        <div class="bg-slate-800 text-white p-4 shadow-md flex items-center">
+            <div class="bg-purple-500 w-10 h-10 rounded-full flex items-center justify-center mr-3 border-2 border-slate-400">
+                <i class="fas fa-robot text-xl"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold">Kitap Asistanı</h2>
+                <p class="text-xs text-slate-300">İstatistik V2 ile eğitildi (Bölüm 7)</p>
+            </div>
+        </div>
+
+        <!-- Chat Geçmişi -->
+        <div class="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4" id="chatHistory">
+            
+            <div class="flex justify-start">
+                <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-[85%] shadow-sm text-sm text-gray-800">
+                    <p class="font-semibold text-purple-700 mb-1"><i class="fas fa-book mr-1"></i> Bölüm 7 Asistanı</p>
+                    Merhaba! <strong>Bölüm 7: Ki-Kare Testleri ve Kategorik Veri Analizi</strong> laboratuvarına hoş geldiniz.<br><br>Şu an <strong>Sayfa 80, Başlık 7.2 (Formal Tanım)</strong> konusundayız. Tablodaki gözlenen frekanslarla oynayarak bağımsızlık testinin nasıl tepki verdiğini ve hangi hücrelerin test sonucunu belirlediğini test edebilirsiniz.
+                </div>
+            </div>
+            
+            <!-- Örnek Kullanıcı Sorusu Butonları -->
+            <div class="flex flex-col gap-2 mt-2" id="suggestionButtons">
+                <p class="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wide">Örnek Sorular:</p>
+                <button onclick="askAI('Beklenen (Expected) frekanslar arka planda nasıl hesaplanıyor?')" class="text-left text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 p-2 rounded transition-colors">
+                    "Beklenen (Expected) frekanslar arka planda nasıl hesaplanıyor?"
+                </button>
+                <button onclick="askAI('Alttaki bar grafiği tam olarak neyi gösteriyor?')" class="text-left text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 p-2 rounded transition-colors">
+                    "Alttaki bar grafiği tam olarak neyi gösteriyor?"
+                </button>
+                <button onclick="askAI('Serbestlik derecesi (df) 2x2 tabloda neden hep 1 olur?')" class="text-left text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 p-2 rounded transition-colors">
+                    "Serbestlik derecesi (df) 2x2 tabloda neden hep 1 olur?"
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Mesaj Yazma Alanı -->
+        <div class="p-3 bg-white border-t border-gray-200 flex gap-2">
+            <input type="text" id="userInput" placeholder="Kitap asistanına sor..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500" onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()" class="bg-slate-700 hover:bg-slate-800 text-white rounded px-4 py-2 transition-colors">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- KI-KARE SİMÜLATÖR MANTIĞI ---
+        let chartInstance = null;
+        const CRITICAL_CHI = 3.841; // df=1, alpha=0.05 için
+
+        function calculateChiSquare() {
+            // Girdileri al (Boşsa 0 kabul et)
+            const o11 = parseInt(document.getElementById('o11').value) || 0;
+            const o12 = parseInt(document.getElementById('o12').value) || 0;
+            const o21 = parseInt(document.getElementById('o21').value) || 0;
+            const o22 = parseInt(document.getElementById('o22').value) || 0;
+
+            // Satır ve Sütun Toplamları
+            const row1 = o11 + o12;
+            const row2 = o21 + o22;
+            const col1 = o11 + o21;
+            const col2 = o12 + o22;
+            const total = row1 + row2;
+
+            document.getElementById('totalN').innerText = total;
+
+            // Beklenen Değerleri Hesapla: E = (Satır Toplamı * Sütun Toplamı) / Genel Toplam
+            let e11 = 0, e12 = 0, e21 = 0, e22 = 0;
+            if (total > 0) {
+                e11 = (row1 * col1) / total;
+                e12 = (row1 * col2) / total;
+                e21 = (row2 * col1) / total;
+                e22 = (row2 * col2) / total;
+            }
+
+            // Beklenen Değerleri Ekrana Yaz
+            document.getElementById('e11').innerText = e11.toFixed(1);
+            document.getElementById('e12').innerText = e12.toFixed(1);
+            document.getElementById('e21').innerText = e21.toFixed(1);
+            document.getElementById('e22').innerText = e22.toFixed(1);
+
+            // Hücre Katkılarını Hesapla: (O - E)^2 / E
+            let c11 = 0, c12 = 0, c21 = 0, c22 = 0;
+            if (e11 > 0) c11 = Math.pow(o11 - e11, 2) / e11;
+            if (e12 > 0) c12 = Math.pow(o12 - e12, 2) / e12;
+            if (e21 > 0) c21 = Math.pow(o21 - e21, 2) / e21;
+            if (e22 > 0) c22 = Math.pow(o22 - e22, 2) / e22;
+
+            // Toplam Ki-Kare
+            const chiSquare = c11 + c12 + c21 + c22;
+            
+            // UI Güncelleme
+            document.getElementById('valChi').innerText = chiSquare.toFixed(2);
+            
+            const resultBox = document.getElementById('boxResult');
+            const resultText = document.getElementById('valDecision');
+            const chiBox = document.getElementById('boxChi');
+
+            if (chiSquare > CRITICAL_CHI) {
+                resultBox.className = "bg-green-100 border border-green-400 rounded p-3 text-center flex flex-col justify-center items-center shadow-sm transition-colors";
+                resultText.className = "text-lg font-bold text-green-800";
+                resultText.innerText = "H0 Reddedilir! (İlişki Var)";
+                chiBox.className = "bg-purple-100 border border-purple-400 rounded p-3 text-center shadow-sm relative overflow-hidden transition-colors";
+            } else {
+                resultBox.className = "bg-red-50 border border-red-300 rounded p-3 text-center flex flex-col justify-center items-center shadow-sm transition-colors";
+                resultText.className = "text-lg font-bold text-red-700";
+                resultText.innerText = "H0 Reddedilemez (Bağımsız)";
+                chiBox.className = "bg-gray-100 border border-gray-300 rounded p-3 text-center shadow-sm relative overflow-hidden transition-colors";
+            }
+
+            // Grafiği Çiz
+            drawChart([c11, c12, c21, c22], chiSquare);
+        }
+
+        function drawChart(contributions, totalChi) {
+            const ctx = document.getElementById('chiChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            // Bar renklerini belirle (En yüksek katkıyı yapanı vurgula)
+            const maxVal = Math.max(...contributions);
+            const bgColors = contributions.map(val => 
+                (val === maxVal && val > 0) ? 'rgba(168, 85, 247, 0.8)' : 'rgba(203, 213, 225, 0.6)' // Purple-500 vs Slate-300
+            );
+            const borderColors = contributions.map(val => 
+                (val === maxVal && val > 0) ? 'rgba(147, 51, 234, 1)' : 'rgba(148, 163, 184, 1)' // Purple-600 vs Slate-400
+            );
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['A - Başarılı', 'A - Başarısız', 'B - Başarılı', 'B - Başarısız'],
+                    datasets: [{
+                        label: 'Hücrenin χ²\'ye Katkısı',
+                        data: contributions,
+                        backgroundColor: bgColors,
+                        borderColor: borderColors,
+                        borderWidth: 2,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let val = context.raw.toFixed(2);
+                                    let percent = totalChi > 0 ? ((context.raw / totalChi) * 100).toFixed(1) : 0;
+                                    return `Katkı: ${val} (Toplamın %${percent}'i)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Ki-Kare Katkı Değeri' },
+                            grid: { color: '#f1f5f9' }
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- RAG AI SİMÜLASYONU MANTIĞI ---
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function askAI(question) {
+            document.getElementById('userInput').value = question;
+            document.getElementById('suggestionButtons').style.display = 'none';
+            sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            input.value = '';
+
+            setTimeout(() => {
+                let response = generateRAGResponse(message);
+                appendMessage(response, 'ai');
+            }, 800);
+        }
+
+        function appendMessage(text, sender) {
+            const chatHistory = document.getElementById('chatHistory');
+            const msgDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                msgDiv.className = 'flex justify-end';
+                msgDiv.innerHTML = `<div class="bg-purple-600 text-white rounded-lg p-3 max-w-[85%] shadow-sm text-sm">${text}</div>`;
+            } else {
+                msgDiv.className = 'flex justify-start';
+                msgDiv.innerHTML = `
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-[85%] shadow-sm text-sm text-gray-800">
+                        <p class="font-semibold text-slate-700 mb-1"><i class="fas fa-book mr-1"></i> Asistan</p>
+                        ${text}
+                    </div>
+                `;
+            }
+            
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function generateRAGResponse(query) {
+            query = query.toLowerCase();
+            
+            if (query.includes('beklenen') || query.includes('arka plan') || query.includes('hesaplanıyor')) {
+                return `<strong>Kaynak: Bölüm 7.3 (Teorem ve İspat)</strong><br><br>Eğer Tedavi türü ile Başarı durumu arasında <em>hiçbir ilişki olmasaydı</em> (Yani H0 hipotezi doğru olsaydı), veriler oransal olarak nasıl dağılırdı sorusunun cevabıdır.<br><br>Formülü basittir: <strong>(Satır Toplamı × Sütun Toplamı) / Genel Toplam</strong>. Tablodaki rakamları eşitlerseniz (örneğin hepsi 20 olsun), Beklenen değerlerin de Gözlenen değerlere tam oturduğunu ve Ki-Kare'nin sıfıra düştüğünü görebilirsiniz.`;
+            } 
+            else if (query.includes('bar') || query.includes('grafik') || query.includes('neyi gösteriyor') || query.includes('katkı')) {
+                return `<strong>Kaynak: Bölüm 7.10 (Artık Katkılarıyla Ki-Kare Yorumu)</strong><br><br>Bu grafik laboratuvarın en önemli kısmıdır! Toplam Ki-Kare değeri (χ²), her bir hücrenin sapmalarının toplamıdır. Formülü: <strong>(Gözlenen - Beklenen)² / Beklenen</strong><br><br>Grafikte en uzun olan mor bar, <em>"Gruplar arasında fark olmasını sağlayan baş sorumluyu"</em> gösterir. İstatistiksel olarak anlamlı bir sonuç bulduğunuzda, bu grafiğe bakarak "Bu farkı asıl yaratan Tedavi B'nin başarısızlık oranının beklenenden çok düşük/yüksek olmasıdır" gibi spesifik yorumlar yapabilirsiniz.`;
+            }
+            else if (query.includes('serbestlik') || query.includes('df') || query.includes('neden 1')) {
+                return `<strong>Kaynak: Bölüm 7.2 (Formal Tanım)</strong><br><br>Çok güzel bir soru. Çapraz tablolarda Serbestlik Derecesi formülü şöyledir: <strong>(Satır Sayısı - 1) × (Sütun Sayısı - 1)</strong>.<br><br>2x2 tablomuzda: (2-1) × (2-1) = 1 yapar. Mantıksal sebebi ise şudur: Genel toplamı biliyorsanız, 4 hücreden sadece 1 tanesinin sonucunu bildiğiniz anda diğer 3 hücreyi matematiksel olarak mecbur bulursunuz. Yani sadece 1 hücre "serbestçe" değişebilir.`;
+            }
+            else {
+                return `Sorunuzu anladım. Şu an <strong>Bölüm 7: Ki-Kare Testleri ve Kategorik Veri Analizi</strong> (Sayfa 80-90) kapsamındayız. Lütfen Gözlenen/Beklenen Frekanslar, Çapraz Tablolar, Serbestlik Derecesi veya Bağımsızlık Testi hakkında sorular sorun.`;
+            }
+        }
+
+        // Başlangıçta çalıştır
+        window.onload = calculateChiSquare;
+
+    </script>
+</body>
+</html>
