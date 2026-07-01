@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İstatistik Dijital Laboratuvar - Bölüm 1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .chat-container { height: calc(100vh - 250px); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gray-50 flex h-screen overflow-hidden">
+
+    <!-- Sol Taraf: Simülasyon Ekranı -->
+    <div class="w-2/3 flex flex-col h-full border-r border-gray-200 bg-white">
+        <!-- Başlık -->
+        <div class="bg-indigo-800 text-white p-4 shadow-md flex justify-between items-center">
+            <div>
+                <h1 class="text-xl font-bold"><i class="fas fa-chart-area mr-2"></i>Dijital Laboratuvar</h1>
+                <p class="text-sm text-indigo-200">Bölüm 1.14 Öncesi Pratik: Merkezi Limit Teoremi Simülatörü</p>
+            </div>
+            <div class="bg-indigo-700 px-3 py-1 rounded text-sm border border-indigo-500">
+                <i class="fas fa-book-open mr-1"></i> Sayfa 11
+            </div>
+        </div>
+
+        <!-- Kontroller -->
+        <div class="p-4 bg-gray-100 border-b border-gray-200 flex flex-wrap gap-4 items-end shadow-inner">
+            <div class="w-1/3 min-w-[200px]">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                    Ana Kütle Dağılımı:
+                </label>
+                <select id="distType" class="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" onchange="runSimulation()">
+                    <option value="skewed">Sağa Çarpık (Örn: Gelir Dağılımı)</option>
+                    <option value="uniform">Tekdüze/Uniform (Örn: Zar Atışı)</option>
+                    <option value="normal">Normal (Örn: IQ Skorları)</option>
+                </select>
+            </div>
+            
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">
+                    Örneklem Boyutu (n): <span id="sampleSizeVal" class="text-indigo-600 font-bold">5</span>
+                </label>
+                <input type="range" id="sampleSize" min="1" max="100" value="5" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer">
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>n=1</span><span>n=30</span><span>n=100</span>
+                </div>
+            </div>
+
+            <button onclick="runSimulation()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded shadow transition-colors flex items-center h-[38px] mb-[18px]">
+                <i class="fas fa-play mr-2"></i> Örneklem Çek (10.00 kez)
+            </button>
+        </div>
+
+        <!-- İstatistik Özeti -->
+        <div class="grid grid-cols-4 gap-4 p-4 bg-white border-b border-gray-100">
+            <div class="bg-slate-50 border border-slate-200 rounded p-3 text-center">
+                <div class="text-xs text-slate-500 font-bold uppercase mb-1">Gerçek Ortalama (μ)</div>
+                <div class="text-xl font-black text-slate-700" id="trueMean">0.00</div>
+            </div>
+            <div class="bg-slate-50 border border-slate-200 rounded p-3 text-center">
+                <div class="text-xs text-slate-500 font-bold uppercase mb-1">Gerçek Varyans (σ²)</div>
+                <div class="text-xl font-black text-slate-700" id="trueVar">0.00</div>
+            </div>
+            <div class="bg-indigo-50 border border-indigo-200 rounded p-3 text-center">
+                <div class="text-xs text-indigo-700 font-bold uppercase mb-1">Örneklemlerin Ortalaması</div>
+                <div class="text-xl font-black text-indigo-600" id="empMean">0.00</div>
+            </div>
+            <div class="bg-indigo-50 border border-indigo-200 rounded p-3 text-center">
+                <div class="text-xs text-indigo-700 font-bold uppercase mb-1">Örneklemlerin Varyansı</div>
+                <div class="text-xl font-black text-indigo-600" id="empVar">0.00</div>
+            </div>
+        </div>
+
+        <!-- Grafik Alanı -->
+        <div class="flex-1 p-4 relative w-full h-full flex flex-col gap-4">
+            <!-- Ana Kütle Grafiği -->
+            <div class="h-1/3 w-full border border-gray-200 rounded bg-gray-50 p-2">
+                <h3 class="text-xs font-bold text-gray-500 text-center mb-1">ANA KÜTLE DAĞILIMI (Popülasyon)</h3>
+                <canvas id="popChart"></canvas>
+            </div>
+            
+            <!-- Örneklem Ortalamaları Dağılımı Grafiği (Histogram) -->
+            <div class="h-2/3 w-full border border-gray-200 rounded p-2">
+                <h3 class="text-xs font-bold text-indigo-700 text-center mb-1">ÖRNEKLEM ORTALAMALARININ DAĞILIMI (Histogram)</h3>
+                <canvas id="sampleChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sağ Taraf: RAG Kitap Asistanı -->
+    <div class="w-1/3 flex flex-col h-full bg-slate-50 border-l border-gray-200">
+        <!-- AI Başlık -->
+        <div class="bg-slate-800 text-white p-4 shadow-md flex items-center">
+            <div class="bg-indigo-500 w-10 h-10 rounded-full flex items-center justify-center mr-3 border-2 border-slate-400">
+                <i class="fas fa-robot text-xl"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold">Kitap Asistanı</h2>
+                <p class="text-xs text-slate-300">İstatistik V2 ile eğitildi (Bölüm 1)</p>
+            </div>
+        </div>
+
+        <!-- Chat Geçmişi -->
+        <div class="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4" id="chatHistory">
+            
+            <div class="flex justify-start">
+                <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-[85%] shadow-sm text-sm text-gray-800">
+                    <p class="font-semibold text-indigo-700 mb-1"><i class="fas fa-book mr-1"></i> Bölüm 1 Asistanı</p>
+                    Merhaba! Ben İstatistik kitabınızın yapay zeka asistanıyım. Solda Merkezi Limit Teoremi'ni simüle ediyoruz.<br><br>Şu an <strong>Sayfa 11, Bölüm Sonu Öncesi</strong> aşamasındayız. Neden n=30 kritik? Varyans neden daralıyor? 1. Bölümle ilgili sorularınızı sorabilirsiniz.
+                </div>
+            </div>
+            
+            <!-- Örnek Kullanıcı Sorusu Butonları -->
+            <div class="flex flex-col gap-2 mt-2" id="suggestionButtons">
+                <p class="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wide">Örnek Sorular:</p>
+                <button onclick="askAI('Örneklem boyutunu 30 yapınca grafik neden çan eğrisine benzedi?')" class="text-left text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 p-2 rounded transition-colors">
+                    "Örneklem boyutunu 30 yapınca grafik neden çan eğrisine benzedi?"
+                </button>
+                <button onclick="askAI('Ana kütle sağa çarpık olsa da sonuç değişir mi?')" class="text-left text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 p-2 rounded transition-colors">
+                    "Ana kütle sağa çarpık olsa da sonuç değişir mi?"
+                </button>
+                <button onclick="askAI('Varyans neden gitgide küçülüyor?')" class="text-left text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 p-2 rounded transition-colors">
+                    "Örneklemlerin Varyansı değeri neden gitgide küçülüyor?"
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Mesaj Yazma Alanı -->
+        <div class="p-3 bg-white border-t border-gray-200 flex gap-2">
+            <input type="text" id="userInput" placeholder="Kitap asistanına sor..." class="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()" class="bg-slate-700 hover:bg-slate-800 text-white rounded px-4 py-2 transition-colors">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- SİMÜLATÖR MANTIĞI ---
+        const ITERATIONS = 10000; // 10 bin kez örneklem çekilecek
+        let popChartInstance = null;
+        let sampleChartInstance = null;
+
+        // Rastgele sayı üreteçleri
+        const RandomGen = {
+            normal: () => {
+                let u = 0, v = 0;
+                while(u === 0) u = Math.random();
+                while(v === 0) v = Math.random();
+                return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v); // Standart Normal N(0,1)
+            },
+            uniform: () => {
+                return (Math.random() - 0.5) * Math.sqrt(12); // Ort:0, Var:1
+            },
+            skewed: () => {
+                // Üstel dağılımı sağa çarpık kullanıp standardize edelim (Ort: 0, Var: 1)
+                return -Math.log(Math.random()) - 1; 
+            }
+        };
+
+        // Histogram Binning (Veriyi kutulara bölme)
+        function createHistogram(data, bins = 40) {
+            let min = Math.min(...data);
+            let max = Math.max(...data);
+            let binWidth = (max - min) / bins;
+            let counts = new Array(bins).fill(0);
+            
+            for (let i = 0; i < data.length; i++) {
+                let binIndex = Math.floor((data[i] - min) / binWidth);
+                if (binIndex === bins) binIndex--; // Max değeri son kutuya koy
+                counts[binIndex]++;
+            }
+            
+            let labels = [];
+            let density = [];
+            let total = data.length;
+            
+            for (let i = 0; i < bins; i++) {
+                labels.push((min + i * binWidth + binWidth / 2).toFixed(2));
+                // Yoğunluk (Density) hesaplaması alanı 1 yapmak için: count / (total * binWidth)
+                density.push(counts[i] / (total * binWidth)); 
+            }
+            return { labels, density, binWidth };
+        }
+
+        // Teorik Çan Eğrisi (Normal Dağılım Çizgisi)
+        function generateNormalCurve(labels, mean, variance) {
+            let stdDev = Math.sqrt(variance);
+            return labels.map(x => {
+                let val = parseFloat(x);
+                let exponent = Math.exp(-Math.pow(val - mean, 2) / (2 * variance));
+                return (1 / (stdDev * Math.sqrt(2 * Math.PI))) * exponent;
+            });
+        }
+
+        function runSimulation() {
+            const distType = document.getElementById('distType').value;
+            const n = parseInt(document.getElementById('sampleSize').value);
+            
+            document.getElementById('sampleSizeVal').innerText = n;
+
+            let sampleMeans = [];
+            let sumMeans = 0;
+
+            // 10.000 kere n çapında örneklem çek ve ortalamasını al
+            for (let i = 0; i < ITERATIONS; i++) {
+                let sampleSum = 0;
+                for (let j = 0; j < n; j++) {
+                    sampleSum += RandomGen[distType]();
+                }
+                let mean = sampleSum / n;
+                sampleMeans.push(mean);
+                sumMeans += mean;
+            }
+
+            // Görgül Ortalamayı ve Varyansı Hesapla
+            let empMean = sumMeans / ITERATIONS;
+            let sumSq = 0;
+            for(let i=0; i<ITERATIONS; i++) {
+                sumSq += Math.pow(sampleMeans[i] - empMean, 2);
+            }
+            let empVar = sumSq / (ITERATIONS - 1);
+
+            // UI Güncelleme (Ana Kütle her zaman Ort:0, Var:1 olacak şekilde standardize edilmiştir)
+            document.getElementById('trueMean').innerText = "0.00";
+            document.getElementById('trueVar').innerText = "1.00";
+            document.getElementById('empMean').innerText = empMean.toFixed(3);
+            document.getElementById('empVar').innerText = empVar.toFixed(3);
+
+            // Popülasyon Grafiği Çizimi (Görsel temsil)
+            drawPopChart(distType);
+
+            // Örneklem Histogramı ve Teorik Normal Eğri Çizimi
+            drawSampleChart(sampleMeans, n);
+        }
+
+        function drawPopChart(type) {
+            const ctx = document.getElementById('popChart').getContext('2d');
+            if (popChartInstance) popChartInstance.destroy();
+
+            let labels = Array.from({length: 100}, (_, i) => -4 + i * 0.08);
+            let data = [];
+
+            if (type === 'normal') {
+                data = generateNormalCurve(labels, 0, 1);
+            } else if (type === 'uniform') {
+                let bound = Math.sqrt(3);
+                data = labels.map(x => (x >= -bound && x <= bound) ? (1 / (2 * bound)) : 0);
+            } else if (type === 'skewed') {
+                // Üstel x > -1 için
+                data = labels.map(x => x >= -1 ? Math.exp(-(x + 1)) : 0);
+            }
+
+            popChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.map(x => x.toFixed(1)),
+                    datasets: [{
+                        label: 'Olasılık Yoğunluğu',
+                        data: data,
+                        borderColor: '#94a3b8',
+                        backgroundColor: 'rgba(148, 163, 184, 0.4)',
+                        fill: true,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: {enabled: false} },
+                    scales: {
+                        x: { title: { display: false }, ticks: {maxTicksLimit: 11} },
+                        y: { display: false }
+                    },
+                    animation: false
+                }
+            });
+        }
+
+        function drawSampleChart(sampleMeans, n) {
+            const ctx = document.getElementById('sampleChart').getContext('2d');
+            if (sampleChartInstance) sampleChartInstance.destroy();
+
+            let hist = createHistogram(sampleMeans, 50);
+            
+            // Merkezi Limit Teoremi'ne göre beklenen varyans = Sigma^2 / n = 1 / n
+            let expectedVar = 1 / n;
+            let normalCurve = generateNormalCurve(hist.labels, 0, expectedVar);
+
+            sampleChartInstance = new Chart(ctx, {
+                data: {
+                    labels: hist.labels,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Histogram (Gözlemlenen)',
+                            data: hist.density,
+                            backgroundColor: 'rgba(79, 70, 229, 0.6)', // Indigo-600
+                            borderColor: 'rgba(79, 70, 229, 1)',
+                            borderWidth: 1,
+                            barPercentage: 1.0,
+                            categoryPercentage: 1.0
+                        },
+                        {
+                            type: 'line',
+                            label: 'Teorik Çan Eğrisi (Normal Dağılım)',
+                            data: normalCurve,
+                            borderColor: '#ef4444', // Red-500
+                            borderWidth: 2.5,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: {boxWidth: 12} },
+                    },
+                    scales: {
+                        x: { 
+                            title: { display: true, text: 'Örneklem Ortalamaları Değeri' },
+                            ticks: { maxTicksLimit: 10 }
+                        },
+                        y: {
+                            title: { display: true, text: 'Yoğunluk' },
+                        }
+                    },
+                    animation: { duration: 600 }
+                }
+            });
+        }
+
+        // --- RAG AI SİMÜLASYONU ---
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function askAI(question) {
+            document.getElementById('userInput').value = question;
+            document.getElementById('suggestionButtons').style.display = 'none';
+            sendMessage();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            input.value = '';
+
+            setTimeout(() => {
+                let response = generateRAGResponse(message);
+                appendMessage(response, 'ai');
+            }, 800);
+        }
+
+        function appendMessage(text, sender) {
+            const chatHistory = document.getElementById('chatHistory');
+            const msgDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                msgDiv.className = 'flex justify-end';
+                msgDiv.innerHTML = `<div class="bg-indigo-600 text-white rounded-lg p-3 max-w-[85%] shadow-sm text-sm">${text}</div>`;
+            } else {
+                msgDiv.className = 'flex justify-start';
+                msgDiv.innerHTML = `
+                    <div class="bg-white border border-gray-200 rounded-lg p-3 max-w-[85%] shadow-sm text-sm text-gray-800">
+                        <p class="font-semibold text-slate-700 mb-1"><i class="fas fa-book mr-1"></i> Asistan</p>
+                        ${text}
+                    </div>
+                `;
+            }
+            
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function generateRAGResponse(query) {
+            query = query.toLowerCase();
+            
+            if (query.includes('30') || query.includes('çan') || query.includes('şekil') || query.includes('limit')) {
+                return `<strong>Kaynak: Bölüm 1.10 (Örnekleme Hatası ve Grafiksel Tanılama)</strong><br><br>Kitabımızın 1.10 bölümünde belirtildiği üzere Merkezi Limit Teoremi'nin gücü buradadır! Ana kütlenizin şekli ne kadar bozuk veya çarpık olursa olsun, örneklem boyutunu (n) genellikle 30 ve üzerine çıkardığınızda, bu örneklemlerin <em>ortalamalarının dağılımı</em> Normal Dağılıma (Kırmızı çan eğrisine) mükemmel şekilde uyum sağlar.`;
+            } 
+            else if (query.includes('sağa çarpık') || query.includes('çarpık') || query.includes('ana kütle')) {
+                return `<strong>Kaynak: Bölüm 1.2 (Formal Tanım)</strong><br><br>Evet, sonuç aslında <em>değişmez</em> ve işin mucizesi de budur. Sol üstten 'Sağa Çarpık'ı seçin ve n=1 yapın. Histogram çarpık olacaktır. Fakat kaydırıcı ile n'i 30'a doğru çektiğinizde dağılımın simetrikleştiğini göreceksiniz. İstatistiksel çıkarımda (Bölüm 1), popülasyonu tam bilmesek bile ortalamalar üzerinden test yapabilmemizin temeli budur.`;
+            }
+            else if (query.includes('varyans') || query.includes('daralma') || query.includes('küçül')) {
+                return `<strong>Kaynak: Bölüm 1.3 (Teorem ve İspat)</strong><br><br>Simülatördeki <em>Örneklemlerin Varyansı</em> kutucuğuna dikkat edin. Matematiksel olarak örneklem ortalamasının varyansı, ana kütle varyansının örneklem boyutuna bölümüdür: <strong>$\\sigma^2 / n$</strong>.<br><br>Yani n'i artırdıkça grafiğin tabanı daralır ve tepe noktası (yoğunluğu) dikleşir. Bu bize, büyük örneklemlerle ana kütle ortalamasını çok daha az hatayla (dar bir aralıkta) tahmin edebileceğimizi kanıtlar.`;
+            }
+            else {
+                return `Sorunuzu anladım. Şu an <strong>Bölüm 1: İstatistiksel Çıkarıma Giriş ve Örnekleme</strong> (Sayfa 1-13) kapsamındayız. Lütfen Merkezi Limit Teoremi, n (Örneklem büyüklüğü), varyans formülleri veya ana kütle dağılımlarının çıkarıma etkisi hakkında sorular sorun.`;
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('sampleSize').addEventListener('input', runSimulation);
+
+        // Başlangıç
+        window.onload = runSimulation;
+
+    </script>
+</body>
+</html>
