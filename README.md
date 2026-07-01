@@ -26,15 +26,15 @@ Bu proje, geleneksel bir istatistik ders kitabını, **QR kod entegrasyonlu inte
 
 Projemiz toplam 9 ana bölümden oluşan bir istatistik serüvenini kapsar. Sayfayı ziyaret ederek veya kitaptaki karekodu okutarak anında pratik yapmaya başlayabilirsiniz!
 
-* **[Bölüm 1: Merkezi Limit Teoremi](https://ibrahimguney.github.io/istatistik-lab/bolum_1_laboratuvar.html)** - Örneklem boyutunun dağılım üzerindeki mucizevi etkisini simüle edin.
-* **[Bölüm 2: Sapma ve Varyans](https://ibrahimguney.github.io/istatistik-lab/bolum_2_laboratuvar.html)** - Hedef tahtası metaforu üzerinden modelin bias ve varyans dengesini keşfedin.
-* **[Bölüm 3: Güven Aralıkları](https://ibrahimguney.github.io/istatistik-lab/bolum_3_laboratuvar.html)** - Çekilen farklı örneklemlerle güven aralığının parametreyi kapsama oranını görselleştirin.
-* **[Bölüm 4: Hipotez Testleri](https://ibrahimguney.github.io/istatistik-lab/bolum_4_laboratuvar.html)** - Tip I ve Tip II hataların tahterevalli dengesini güç analiziyle interaktif olarak inceleyin.
-* **[Bölüm 5: Regresyon Analizi](https://ibrahimguney.github.io/istatistik-lab/bolum_5_laboratuvar.html)** - En Küçük Kareler (OLS) doğrusunu verilere uydurma oyununu oynayın.
-* **[Bölüm 6: ANOVA](https://ibrahimguney.github.io/istatistik-lab/bolum_6_laboratuvar.html)** - F-İstatistiği ile gruplar arası sinyalin grup içi gürültüye oranını anlık grafikte analiz edin.
-* **[Bölüm 7: Ki-Kare Testleri](https://ibrahimguney.github.io/istatistik-lab/bolum_7_laboratuvar.html)** - Beklenen ve gözlenen frekansların kategorik veri matrisindeki sapmalarını görselleştirin.
-* **[Bölüm 8: Parametrik Olmayan Testler](https://ibrahimguney.github.io/istatistik-lab/bolum_8_laboratuvar.html)** - Aykırı değerlerin sonuçlara olan etkisini ve non-parametrik testlerin dayanıklılığını (robustness) deneyimleyin.
-* **[Bölüm 9: Bayesçi Çıkarım](https://ibrahimguney.github.io/istatistik-lab/bolum_9_laboratuvar.html)** - Yeni kanıtlar ışığında (Likelihood) önceki inançların (Prior) nasıl güncellendiğini görün.
+* **[Bölüm 1: Merkezi Limit Teoremi](https://ibrahimguney.github.io/istatistik-lab/lab/bolum_1_laboratuvar.html)** - Örneklem boyutunun dağılım üzerindeki mucizevi etkisini simüle edin.
+* **[Bölüm 2: Sapma ve Varyans](https://ibrahimguney.github.io/istatistik-lab/lab/bolum_2_laboratuvar.html)** - Hedef tahtası metaforu üzerinden modelin bias ve varyans dengesini keşfedin.
+* **[Bölüm 3: Güven Aralıkları](https://ibrahimguney.github.io/istatistik-lab/lab/bolum_3_laboratuvar.html)** - Çekilen farklı örneklemlerle güven aralığının parametreyi kapsama oranını görselleştirin.
+* **[Bölüm 4: Hipotez Testleri](https://ibrahimguney.github.io/istatistik-lab/lab/bolum_4_laboratuvar.html)** - Tip I ve Tip II hataların tahterevalli dengesini güç analiziyle interaktif olarak inceleyin.
+* **[Bölüm 5: Regresyon Analizi](https://ibrahimguney.github.io/istatistik-lab/lab/bolum_5_laboratuvar.html)** - En Küçük Kareler (OLS) doğrusunu verilere uydurma oyununu oynayın.
+* **[Bölüm 6: ANOVA](https://ibrahimguney.github.io/istatistik-lab/lab/bolum_6_laboratuvar.html)** - F-İstatistiği ile gruplar arası sinyalin grup içi gürültüye oranını anlık grafikte analiz edin.
+* **[Bölüm 7: Ki-Kare Testleri](https://ibrahimguney.github.io/istatistik-lab/lab/bolum_7_laboratuvar.html)** - Beklenen ve gözlenen frekansların kategorik veri matrisindeki sapmalarını görselleştirin.
+* **[Bölüm 8: Parametrik Olmayan Testler](https://ibrahimguney.github.io/istatistik-lab/lab/bolum_8_laboratuvar.html)** - Aykırı değerlerin sonuçlara olan etkisini ve non-parametrik testlerin dayanıklılığını (robustness) deneyimleyin.
+* **[Bölüm 9: Bayesçi Çıkarım](https://ibrahimguney.github.io/istatistik-lab/lab/bolum_9_laboratuvar.html)** - Yeni kanıtlar ışığında (Likelihood) önceki inançların (Prior) nasıl güncellendiğini görün.
 
 ---
 
@@ -53,9 +53,10 @@ Bu proje, performans ve erişilebilirlik odaklı olarak inşa edilmiştir:
 ```text
 /
 ├── index.html                  # Tüm laboratuvarlara erişim sağlayan ana portal
-├── bolum_1_laboratuvar.html    # Bölüm 1 Simülatörü
-├── bolum_2_laboratuvar.html    # Bölüm 2 Simülatörü
-├── ...
+├── lab/                        # Simülatör dosyaları klasörü
+│   ├── bolum_1_laboratuvar.html    # Bölüm 1 Simülatörü
+│   ├── bolum_2_laboratuvar.html    # Bölüm 2 Simülatörü
+│   └── ...
 └── README.md                   # Proje dokümantasyonu
 ```
 
